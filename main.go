@@ -2,7 +2,7 @@
 
 import (
 	"net/http"
-	"html/template"
+	
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"encoding/json"
@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 
 	"github.com/codegangsta/negroni"
+	"github.com/yosssi/ace"
 )
 
 type Page struct {
@@ -50,17 +51,19 @@ func verifyDatabase(w http.ResponseWriter, r *http.Request, next http.HandlerFun
 }
 
 func main() {
-	templates := template.Must(template.ParseFiles("templates/index.html"))
-
 	db, _ = sql.Open("sqlite3", "dev.db")
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request){
+		template, err := ace.Load("templates/index", "", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		var p Page
 		p.DBStatus = db.Ping() == nil
 
-		if err := templates.ExecuteTemplate(w, "index.html", p); err != nil {
+		if err := template.Execute(w, p); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
